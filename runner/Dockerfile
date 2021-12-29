@@ -52,13 +52,13 @@ RUN sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/lib
 
 
 # arch command on OS X reports "i386" for Intel CPUs regardless of bitness
-RUN export ARCH=aarch64 \
+RUN export ARCH=x86_64 \
     && curl -f -L -o /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/dumb-init_${DUMB_INIT_VERSION}_${ARCH} \
     && chmod +x /usr/local/bin/dumb-init
 
 # Docker download supports arm64 as aarch64 & amd64 / i386 as x86_64
 RUN set -vx; \
-    export ARCH=aarch64 \
+    export ARCH=x86_64 \
     && curl -f -L -o docker.tgz https://download.docker.com/linux/static/${DOCKER_CHANNEL}/${ARCH}/docker-${DOCKER_VERSION}.tgz \
     && tar zxvf docker.tgz \
     && install -o root -g root -m 755 docker/docker /usr/local/bin/docker \
