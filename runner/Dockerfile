@@ -5,8 +5,7 @@ ARG RUNNER_VERSION=2.286.0
 ARG DOCKER_CHANNEL=stable
 ARG DOCKER_VERSION=20.10.8
 ARG DUMB_INIT_VERSION=1.2.5
-
-RUN test -n "$TARGETPLATFORM" || (echo "TARGETPLATFORM must be set" && false)
+ARG VERSION_ID=20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update -y \
@@ -20,6 +19,7 @@ RUN apt update -y \
     dnsutils \
     ftp \
     git \
+    gnupg2 \
     iproute2 \
     iputils-ping \
     jq \
@@ -44,18 +44,21 @@ RUN apt update -y \
     && ln -sf /usr/bin/pip3 /usr/bin/pip \
     && rm -rf /var/lib/apt/lists/*
 
+
+RUN sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_${VERSION_ID}/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list" \ 
+ && wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/xUbuntu_${VERSION_ID}/Release.key -O- | apt-key add - \
+ && apt-get update -qq -y \
+ && apt-get --yes install podman
+
+
 # arch command on OS X reports "i386" for Intel CPUs regardless of bitness
-RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
-    && if [ "$ARCH" = "arm64" ]; then export ARCH=aarch64 ; fi \
-    && if [ "$ARCH" = "amd64" ] || [ "$ARCH" = "i386" ]; then export ARCH=x86_64 ; fi \
+RUN export ARCH=aarch64 \
     && curl -f -L -o /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/dumb-init_${DUMB_INIT_VERSION}_${ARCH} \
     && chmod +x /usr/local/bin/dumb-init
 
 # Docker download supports arm64 as aarch64 & amd64 / i386 as x86_64
 RUN set -vx; \
-    export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
-    && if [ "$ARCH" = "arm64" ]; then export ARCH=aarch64 ; fi \
-    && if [ "$ARCH" = "amd64" ] || [ "$ARCH" = "i386" ]; then export ARCH=x86_64 ; fi \
+    export ARCH=aarch64 \
     && curl -f -L -o docker.tgz https://download.docker.com/linux/static/${DOCKER_CHANNEL}/${ARCH}/docker-${DOCKER_VERSION}.tgz \
     && tar zxvf docker.tgz \
     && install -o root -g root -m 755 docker/docker /usr/local/bin/docker \
@@ -92,8 +95,7 @@ ENV HOME=/home/runner
 # libyaml-dev is required for ruby/setup-ruby action.
 # It is installed after installdependencies.sh and before removing /var/lib/apt/lists
 # to avoid rerunning apt-update on its own.
-RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
-    && if [ "$ARCH" = "amd64" ] || [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "i386" ]; then export ARCH=x64 ; fi \
+RUN export ARCH=x64 \
     && mkdir -p "$RUNNER_ASSETS_DIR" \
     && cd "$RUNNER_ASSETS_DIR" \
     # Comment-out the below curl invocation when you use your own build of actions/runner
